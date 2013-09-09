@@ -51,8 +51,8 @@ def clean_finding(finding)
   output << finding.css('name').text + "\t"
   output << finding.css('issueBackground').text + "\t"
   output << finding.css('remediationBackground').text + "\t"
-  if finding.at_css('response')
-    output << finding.css('response').text.split("Server:")[1].split(" ")[0] + "\t"
+  if finding.at_css('response') && !finding.css('response').text == nil
+    output << finding.css('response').text.split("Server:")[1].split("\r\n")[0] + "\t"
   else
     output << "\t"
   end
