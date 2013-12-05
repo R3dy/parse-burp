@@ -16,14 +16,17 @@
 # #
 require 'nokogiri'
 
+# Display if no arguments are passed
 unless ARGV.length > 0
   puts "Parse Burpsuite XML output into Tab delimited results"
   puts "Example: ./parse-brup.rb <xml-file> > output.csv\r\n\r\n"
   exit!
 end
 
+# Create an XML object from the file provided at runtime
 report = Nokogiri::XML(File.open(ARGV[0]))
 
+# This is just a string that serves as the title line of the CSV output
 @title = "Assessment Phase\t" + 
   "Finding ID\t" +
   "Criticality\t" +
@@ -39,6 +42,8 @@ report = Nokogiri::XML(File.open(ARGV[0]))
   "WebServer\t" +
   "Technologies"
 
+# This is the main parseing method which will run on each 
+# finding in 'issue' (or finding) in the burp XML file.
 def clean_finding(finding)
   output = ""
   output << "Web Application Findings\t"
@@ -61,6 +66,8 @@ def clean_finding(finding)
 end
 
 puts @title
+#Iterate through the XML file and send every issue 
+# to the 'clean_finding' method
 report.xpath('//issues/issue').each do |finding|
   puts clean_finding(finding)
 end
