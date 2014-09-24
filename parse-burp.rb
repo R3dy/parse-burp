@@ -14,60 +14,87 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>
 # #
-require 'nokogiri'
+begin
+  require 'nokogiri'
+  require 'csv'
+  require 'optparse'
+rescue LoadError
+    puts 'Missing gems. Make sure to install: csv, nokogiri using \'gem install <gem>\''
+    exit
+end
 
-# Display if no arguments are passed
-unless ARGV.length > 0
-  puts "Parse Burpsuite XML output into Tab delimited results"
-  puts "Example: ./parse-brup.rb <xml-file> > output.csv\r\n\r\n"
-  exit!
+# This is the main parsing method which will run on each 
+# finding in 'issue' (or finding) in the burp XML file.
+def clean_finding(finding)
+  output = []
+  output << 'Web Application Findings'
+  output << ''
+  output << finding.css('severity').text
+  output << 'Open'
+  output << finding.css('host').text
+  output << finding.css('path').text
+  output << finding.css('issueDetail').text
+  output << finding.css('name').text
+  output << finding.css('issueBackground').text
+  output << finding.css('remediationBackground').text
+  response = finding.css('response').text
+  if response.include?('Server:')
+    output << response.split('Server: ')[1].split("\n")[0]
+  end
+  output
+end
+
+options = {}
+
+optparse = OptionParser.new do|opts|
+    opts.banner = "Parse Burp Suite XML output into CSV results.\r\nUsage: #{$0} [options]"
+
+    opts.on('-i', '--infile FILE', 'Input XML file') do |file|
+      raise 'No such file' unless File.exists?(file)
+      options[:infile] = file
+    end
+
+    opts.on('-o', '--outfile FILE', 'Output CSV file') do |file|
+      options[:outfile] = file
+    end
+
+    options[:help] = opts.help
+end
+
+# Parse the arguments to the script
+optparse.parse!
+begin
+  raise OptionParser::MissingArgument if options[:infile].nil?
+  raise OptionParser::MissingArgument if options[:outfile].nil?
+rescue OptionParser::MissingArgument
+  puts options[:help]
+  exit
 end
 
 # Create an XML object from the file provided at runtime
-report = Nokogiri::XML(File.open(ARGV[0]))
+report = Nokogiri::XML(File.open(options[:infile]))
 
 # This is just a string that serves as the title line of the CSV output
-@title = "Assessment Phase\t" + 
-  "Finding ID\t" +
-  "Criticality\t" +
-  "Confirmation_Status\t" +
-  "Web_Application_URI\t" +
-  "Web_Application_Path\t" +
-  "Details\t" +
-  "Finding_Title\t" +
-  "Description\t" +
-  "Recommendation\t" +
-  "Banner\t" +
-  "OS\t" +
-  "WebServer\t" +
-  "Technologies"
+CSV.open(options[:outfile], 'w') do |csv|
+  csv << [
+    'Assessment Phase', 
+    'Finding ID', 
+    'Criticality',
+    'Confirmation_Status',
+    'Web_Application_URI',
+    'Web_Application_Path',
+    'Details',
+    'Finding_Title',
+    'Description',
+    'Recommendation',
+    'Banner',
+    'OS',
+    'WebServer',
+    'Technologies']
 
-# This is the main parseing method which will run on each 
-# finding in 'issue' (or finding) in the burp XML file.
-def clean_finding(finding)
-  output = ""
-  output << "Web Application Findings\t"
-  output << "\t"
-  output << finding.css('severity').text + "\t"
-  output << "Open\t"
-  output << finding.css('host').text + "\t"
-  output << finding.css('path').text + "\t"
-  output << finding.css('issueDetail').text + "\t"
-  output << finding.css('name').text + "\t"
-  output << finding.css('issueBackground').text + "\t"
-  output << finding.css('remediationBackground').text + "\t"
-  if finding.css('response').text.include?("Server:")
-    output << finding.css('response').text.split("Server: ")[1].split("\n")[0] + "\t"
-  else
-    output << "\t"
-  end
-  output << "\t\t\t"
-  return output
+    report.xpath('//issues/issue').each do |finding|
+        csv << clean_finding(finding)
+    end
 end
 
-puts @title
-#Iterate through the XML file and send every issue 
-# to the 'clean_finding' method
-report.xpath('//issues/issue').each do |finding|
-  puts clean_finding(finding)
-end
+

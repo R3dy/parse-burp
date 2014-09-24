@@ -5,9 +5,11 @@ Scanner results.
 
 Contact: royce.e.davis@gmail.com
 
-Updated 09/09/2013
+Updated 09/22/2014
 ------------------
     $ ./parse-burp.rb 
-    Parse Burpsuite XML output into Tab delimited results
-    Example: ./parse-brup.rb <xml-file> > output.csv
+    Parse Burp Suite XML output into CSV results.
+    Usage: ./parse-burp.rb [options]
+        -i, --infile FILE                Input XML file
+        -o, --outfile FILE               Output CSV file
 
